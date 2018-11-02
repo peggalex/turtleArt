@@ -1,18 +1,24 @@
 import turtle, math, random, time
 
 screen = turtle.Screen()
+print(screen.screensize())
 screen.bgcolor("blue")
-rangeNumPetals = {'lower':5,'upper':8}
+rangeNumPetals = {'lower':5,'upper':10}
 rangeWidthPetal = {'lower':6, 'upper':9} # pixel width of petals
 flowerCell = {'x':((rangeWidthPetal['upper']/2)**2)*2,'y':((rangeWidthPetal['upper']/2)**2)*3}
 rangeLengthStalk = {'lower':25,'upper':75}
 strokeStalk = 4
+height = turtle.window_height()
+padding = 50
 flowerColors = ['red','lightblue','orange','pink']
-rangeGround = {'x': {'lower': -300, 'upper': 300} , 'y': {'lower': -300, 'upper': 0}}
-rangeGroundFull = {'x': {'lower': -screen.screensize()[0], 'upper': screen.screensize()[0]} , 'y': {'lower': -screen.screensize()[1], 'upper': 0}}
-rangeSky = {'x': {'lower': -300, 'upper': 300} , 'y': {'lower': 150, 'upper': 250}}
-rangeMountainHeight = {'lower':50,'upper':150}
-rangeMountainLength = {'lower':200,'upper':300}
+rangeGround = {'x': {'lower': -screen.screensize()[0]+padding,\
+    'upper': screen.screensize()[0]-padding} ,'y': {'lower':  -screen.screensize()[1]+padding, 'upper': 0}}
+rangeGroundFull = {'x': {'lower': -screen.screensize()[0], 'upper': screen.screensize()[0]},\
+    'y': {'lower': -screen.screensize()[1], 'upper': 0}}
+rangeSky = {'x': {'lower': -screen.screensize()[0]+padding, 'upper':  screen.screensize()[1]-padding},\
+    'y': {'lower':  screen.screensize()[1]//2, 'upper':screen.screensize()[1]-padding}}
+rangeMountainHeight = {'lower':50,'upper': screen.screensize()[1]//2}
+rangeMountainLength = {'lower':200,'upper': 300}
 exhaustedCellCoords = [] # make sure that cells that have flowers are not replaced
 
 lenCloud = 200 # pixel length of a cloud
@@ -317,6 +323,7 @@ class Cloud(AnimatedObject):
         # increment global max to ensure unqiue values
         super().__init__()
         self.shape = None
+        self.amtToMove = random.randint(1,3)
         AnimatedObject.addShape(self)
         self.cloud = AnimatedObject.initTurt()
         self.cloud.speed(self.speed)
@@ -351,12 +358,8 @@ class Cloud(AnimatedObject):
         startingPos = self.startingPos
         bumps = self.bumps
         numBumps = self.numBumps
-        
             # first bump:
         cloud.setpos(startingPos['x'],startingPos['y'])
-        cloud.begin_poly()
-        cloud.begin_fill()
-        cloud.pendown()
         cloud.setheading(90)
                 # length is a diameter so divide by 2, half circle so 180degrees
             # next bumps have random radius given length:
@@ -364,9 +367,13 @@ class Cloud(AnimatedObject):
             cummul = 0 if i==0 else bumps[i-1]['cummul']
             center_xcor = startingPos['x']-int(bumps[i]['length']/2) - cummul
             cloud.setpos(center_xcor+bumps[i]['radius'],cloud.ycor())
+            cloud.begin_poly()
+            cloud.begin_fill()            # length is a diameter so divide by 2, half circle so 180degrees
             cloud.pendown()
-            # length is a diameter so divide by 2, half circle so 180degrees
-            cloud.circle(bumps[i]['radius'],180)
+            cloud.circle(bumps[i]['radius'],180,20)
+            cloud.end_poly()
+            cloud.end_fill()
+            self.polyColorDics.append({"poly":cloud.get_poly(),"color":"white"})
             cloud.penup()
             cloud.setheading(90)
 
@@ -374,7 +381,7 @@ class Cloud(AnimatedObject):
         self.cloud.seth(90)
         cloud.end_poly()
         cloud.end_fill()
-        self.polyColorDics.append({"poly":cloud.get_poly(),"color":"white"})
+        #self.polyColorDics.append({"poly":cloud.get_poly(),"color":"white"})
 
     #@Override
     def clearDrawing(self):
@@ -382,10 +389,17 @@ class Cloud(AnimatedObject):
     
     #@Override
     def move(self):
-        if all(x[0]>400 for x in self.polyColorDics[0]['poly']):
-            self.polyColorDics[0]['poly'] = tuple((x[0]-1200,x[1]) for x in self.polyColorDics[0]['poly'])
+        polys = self.polyColorDics
+        x = 0
+        if all((coord[1]>screen.screensize()[x] for coord in x['poly']) for x in polys):
+            for poly in polys:
+                print('china')
+                poly['poly'] = tuple((x[0]-1200,x[1]) for x in poly['poly'])
+            #self.polyColorDics[0]['poly'] = tuple((x[0]-1200,x[1]) for x in self.polyColorDics[0]['poly'])
         else:
-            self.polyColorDics[0]['poly'] = tuple((x[0]+self.amtToMove,x[1]) for x in self.polyColorDics[0]['poly'])
+            for poly in polys:
+                poly['poly'] = tuple((x[0]+self.amtToMove,x[1]) for x in poly['poly'])
+            #self.polyColorDics[0]['poly'] = tuple((x[0]+self.amtToMove,x[1]) for x in self.polyColorDics[0]['poly'])
 
 class Sun(AnimatedObject):
     amtToRotate = 1/2 #degrees
@@ -422,7 +436,7 @@ class Sun(AnimatedObject):
         self.angle = self.angle%360
         Sun.suns.append(self.polyColorDics[0]['poly'])
         self.polyColorDics = [self.polyColorDics[0]] #remove all stars
-        if self.getTime()<(6*60) or self.getTime()>(24*60)-(6*60):
+        if self.getTime()<(5*60)+30 or self.getTime()>(24*60)-((5*60)+30):
             for _ in range(3):
                 starCoordsX = random.randint(rangeSky['x']['lower'],rangeSky['x']['upper'])
                 starCoordsY = random.randint(0,rangeSky['y']['upper'])
@@ -439,44 +453,36 @@ def isValidColor(r,g,b)->bool:
 
 
 def getSkyColor(time:'mins'):
-    fiveOClock = (5*60)+30
-    sixOClock = (6*60)+30
-    sevenOClock = (7*60)+30
-    eightOClock = (8*60)+30
+    fiveOClock = (5*60)
+    sixOClock = (6*60)
+    sevenOClock = (7*60)
+    eightOClock = (8*60)
     day = 60*24
     increment = 60  #mins
     if time>=day-fiveOClock or time<fiveOClock:
         return (0,0,0) #black ie night
-    elif time>=fiveOClock and time<sixOClock:
-        gradient = (time-fiveOClock)/increment
-        return (int(255*gradient),0,0)
-    elif time>=day-sixOClock and time<day-fiveOClock:
-        gradient = (day-fiveOClock-time)/increment
+    
+    elif (time>=fiveOClock and time<sixOClock) or (time>=day-sixOClock and time<day-fiveOClock):
+        gradient = (time-fiveOClock)/increment if time<sixOClock else (day-fiveOClock-time)/increment
         return (int(255*gradient),0,0) #approaching red
-    elif time>=sixOClock and time<sevenOClock:
-        gradient = (time-sixOClock)/increment
-        return (255,int(255*gradient),0) #approaching yellow
-    elif time>=day-sevenOClock and time<day-sixOClock:
-        gradient = (day-sixOClock-time)/increment
-        return (255, int(255*gradient),0)
-    elif time>=sevenOClock and time<eightOClock:
-        gradient = (time-sevenOClock)/increment
+    
+    elif (time>=sixOClock and time<sevenOClock) or (time>=day-sevenOClock and time<day-sixOClock):
+        gradient = (time-sixOClock)/increment if  time<sevenOClock else (day-sixOClock-time)/increment
+        return (255,int(255*gradient*0.5),0) #approaching orange
+    
+    elif (time>=sevenOClock and time<eightOClock) or (time>=day-eightOClock and time<day-sevenOClock):
+        gradient = (time-sevenOClock)/increment if time<eightOClock else (day-sevenOClock-time)/increment
         decreasing = int(255*(1-gradient))
-        return (decreasing,decreasing,int(255*gradient))
-    elif time>=day-eightOClock and time<day-sevenOClock:
-        gradient = (day-sevenOClock-time)/increment
-        decreasing = int(255*(1-gradient))
-        return (decreasing,decreasing,int(255*gradient))
+        return (decreasing,int(decreasing*0.5),int(255*gradient)) #approaching blue
+    
     else:
         # it's 8:00 - 4:00
-        return (0,0,255)
-
-# in my mind, color 
+        return (0,0,255) #blue
 
 if __name__ == "__main__":
     screen.colormode(255)
     numMountains=3
-    numFlowers=7
+    numFlowers=10
     numClouds=3
     sun = Sun()
     Ground()
