@@ -338,6 +338,12 @@ class Cloud(AnimatedObject):
         self.bumps = {} # {int:{'length':int,'cummul':int,'radius':int'}, }
         bumps = self.bumps
         numBumps = self.numBumps
+        self.genBumps()
+        self.genCloud()
+
+    def genBumps(self):
+        numBumps = self.numBumps
+        bumps = self.bumps
         for i in range(numBumps):
             bumps[i] = {}
             cloudsLeft = numBumps-i
@@ -350,9 +356,7 @@ class Cloud(AnimatedObject):
             bumps[i]['cummul'] = bumpLength if i==0 else bumps[i-1]['cummul'] + bumpLength
 
             eRadius = int(bumps[i]['length'] / 2)
-            bumps[i]['radius'] = eRadius if i==0 or i==numBumps-1 else random.randint(eRadius,eRadius*2)
-
-        self.genCloud()
+            bumps[i]['radius'] = eRadius if i==0 or i==numBumps-1 else random.randint(eRadius,eRadius*2)        
 
     def genCloud(self)->None:
         cloud = self.cloud
@@ -397,6 +401,103 @@ class Cloud(AnimatedObject):
         else:
             for poly in polys:
                 poly['poly'] = tuple((x[0]+self.amtToMove,x[1]) for x in poly['poly'])
+
+
+class Bird(AnimatedObject):
+    radius = 20
+    angle = 135
+    size = 120
+    inclineRange = 30 #degrees
+    color = "grey"
+    
+    
+    def __init__(self):
+        
+        # when registering turtle shapes, the string name needs to be unique
+        # do this by giving each cloud a unique tracking serial
+        # increment global max to ensure unqiue values
+        super().__init__()
+        self.shape = None
+        AnimatedObject.addShape(self)
+        self.bird = AnimatedObject.initTurt()
+        self.bird.speed(self.speed)
+        self.bird.color(Bird.color)
+        self.amtToMove = random.randint(1,3)
+        self.amtToRotate = random.randint(10,30)
+        self.bird.penup()
+        self.left = None
+        self.right = None
+        self.path = 0
+        self.leftOriginalPoly = None
+        self.rightOriginalPoly = None
+        startingPosX = random.randint(rangeSky['x']['lower'],rangeSky['x']['upper'])
+        startingPosY = random.randint(rangeSky['y']['lower'],rangeSky['y']['upper'])
+        self.startingPos = {'x':startingPosX,'y':startingPosY}
+        self.center = [startingPosX,startingPosY]
+        self.genBird()
+
+    def genBird(self)->None:
+        turt = self.bird
+        size = Bird.size
+        radius = Bird.radius
+        angle = Bird.angle
+        startingPos = self.startingPos
+        turt.setpos(startingPos['x'],startingPos['y'])
+        turt.seth(size)
+        turt.begin_poly()
+        turt.pendown()
+        turt.circle(radius,angle)
+        turt.circle(radius,-angle)
+        turt.end_poly()
+        turt.penup()
+        self.leftOriginalPoly = turt.get_poly()
+        #self.leftOriginalPoly = tuple(rotateAroundPoint(x,self.center,90) for x in turt.get_poly())
+        self.left = {"poly":self.leftOriginalPoly,"color":Bird.color}
+        self.polyColorDics.append(self.left)
+
+        turt.setpos(startingPos['x'],startingPos['y'])
+        turt.seth(size*2)
+        turt.begin_poly()
+        turt.pendown()
+        turt.circle(radius,-angle)
+        turt.circle(radius,angle)
+        turt.end_poly()
+        turt.penup()
+        #self.right = {"poly":turt.get_poly(),"color":"white"}
+        #self.rightOriginalPoly = tuple(rotateAroundPoint(x,self.center,90) for x in turt.get_poly())
+        self.rightOriginalPoly = turt.get_poly()
+        self.right = {"poly":self.rightOriginalPoly,"color":Bird.color}
+        self.polyColorDics.append(self.right)
+
+    #@Override
+    def clearDrawing(self):
+        self.bird.clear()
+    
+    #@Override
+    def move(self):
+
+        polys = self.polyColorDics
+        if self.center[0]+Bird.size<-screen.screensize()[0]:
+            shift = int((screen.screensize()[0]*2.5)//1)
+            for poly in polys:
+                poly['poly'] = tuple((x[0]+shift,x[1]) for x in poly['poly'])
+            self.center[0] += shift
+            self.leftOriginalPoly = tuple((x[0]+shift,x[1]) for x in self.leftOriginalPoly)
+            self.rightOriginalPoly = tuple((x[0]+shift,x[1]) for x in self.rightOriginalPoly)
+        else:
+            for poly in polys:
+                poly['poly'] = tuple((x[0]-self.amtToMove,x[1]) for x in poly['poly'])
+            self.center[0] -= self.amtToMove
+            self.leftOriginalPoly = tuple((x[0]-self.amtToMove,x[1]) for x in self.leftOriginalPoly)
+            self.rightOriginalPoly = tuple((x[0]-self.amtToMove,x[1]) for x in self.rightOriginalPoly)
+            
+            incline = Bird.inclineRange * math.sin(math.radians(self.path))
+            self.path += self.amtToRotate
+            self.left['poly'] = tuple(rotateAroundPoint(x,self.center,incline) for x in self.leftOriginalPoly)
+            self.right['poly'] = tuple(rotateAroundPoint(x,self.center,-incline) for x in self.rightOriginalPoly)
+            
+                
+
 
 class Sun(AnimatedObject):
     amtToRotate = 1/2 #degrees
@@ -481,14 +582,17 @@ if __name__ == "__main__":
     numMountains=3
     numFlowers=10
     numClouds=3
+    numBirds = 3
     sun = Sun()
     Ground()
     for _ in range(numMountains):
-        Mountain() 
+        Mountain()
     for _ in range(numClouds):
         Cloud()
     for _ in range(numFlowers):
-        Flower() 
+        Flower()
+    for _ in range(numBirds):
+        Bird()
     turt = turtle.Turtle()
     turt.speed('fastest')
     turt.hideturtle()
