@@ -198,7 +198,7 @@ class Mountain(AnimatedObject):
 
 class Flower(AnimatedObject):
     maxSerial = 0
-    amtToRotate = 1 #degrees
+    amtToRotate = random.randint(1,3)
     
     def __init__(self):
         super().__init__()
@@ -301,11 +301,13 @@ class Flower(AnimatedObject):
     #@Override
     def move(self):
         startingPosTup = (self.startingPos['x'],self.startingPos['y'])
+        self.angle = self.angle%360
+        self.angle -= self.amtToRotate
         for polyColorDic in self.polyColorDics:
             if polyColorDic['color'] == "yellow" or polyColorDic['color'] == "green":
                 continue
-            polyColorDic['poly'] = tuple(rotateAroundPoint(x,startingPosTup,self.angle-self.amtToRotate) for x in self.startingPetalPoly)
-            self.angle-=self.amtToRotate
+            polyColorDic['poly'] = tuple(rotateAroundPoint(x,startingPosTup,self.angle) for x in self.startingPetalPoly)
+            #self.angle-=self.amtToRotate
     #@Override
     def clearDrawing(self):
         self.stalk.clear()
@@ -426,9 +428,9 @@ class Sun(AnimatedObject):
         
     #@Override
     def move(self):
-        self.polyColorDics[0]['poly'] = tuple(rotateAroundPoint(x,(0,0),self.angle+self.amtToRotate) for x in self.startingPoly)
-        self.angle+=self.amtToRotate
         self.angle = self.angle%360
+        self.angle -= self.amtToRotate
+        self.polyColorDics[0]['poly'] = tuple(rotateAroundPoint(x,(0,0),self.angle) for x in self.startingPoly)
         Sun.suns.append(self.polyColorDics[0]['poly'])
         self.polyColorDics = [self.polyColorDics[0]] #remove all stars
         if self.getTime()<(5*60)+30 or self.getTime()>(24*60)-((5*60)+30):
