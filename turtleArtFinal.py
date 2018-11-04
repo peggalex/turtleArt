@@ -381,7 +381,6 @@ class Cloud(AnimatedObject):
         self.cloud.seth(90)
         cloud.end_poly()
         cloud.end_fill()
-        #self.polyColorDics.append({"poly":cloud.get_poly(),"color":"white"})
 
     #@Override
     def clearDrawing(self):
@@ -390,16 +389,12 @@ class Cloud(AnimatedObject):
     #@Override
     def move(self):
         polys = self.polyColorDics
-        x = 0
-        if all((coord[1]>screen.screensize()[x] for coord in x['poly']) for x in polys):
+        if all(all(coord[0]>screen.screensize()[0] for coord in dic['poly']) for dic in polys):
             for poly in polys:
-                print('china')
                 poly['poly'] = tuple((x[0]-1200,x[1]) for x in poly['poly'])
-            #self.polyColorDics[0]['poly'] = tuple((x[0]-1200,x[1]) for x in self.polyColorDics[0]['poly'])
         else:
             for poly in polys:
                 poly['poly'] = tuple((x[0]+self.amtToMove,x[1]) for x in poly['poly'])
-            #self.polyColorDics[0]['poly'] = tuple((x[0]+self.amtToMove,x[1]) for x in self.polyColorDics[0]['poly'])
 
 class Sun(AnimatedObject):
     amtToRotate = 1/2 #degrees
