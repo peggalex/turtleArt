@@ -334,6 +334,7 @@ class Cloud(AnimatedObject):
         startingPosX = random.randint(rangeSky['x']['lower'],rangeSky['x']['upper'])
         startingPosY = random.randint(rangeSky['y']['lower'],rangeSky['y']['upper'])
         self.startingPos = {'x':startingPosX,'y':startingPosY}
+        self.center = [startingPosX, startingPosY]
         self.numBumps = random.randint(rangeNumBumps['lower'],rangeNumBumps['upper'])
         self.bumps = {} # {int:{'length':int,'cummul':int,'radius':int'}, }
         bumps = self.bumps
@@ -395,17 +396,20 @@ class Cloud(AnimatedObject):
     #@Override
     def move(self):
         polys = self.polyColorDics
-        if all(all(coord[0]>screen.screensize()[0] for coord in dic['poly']) for dic in polys):
+        shift = int(screen.screensize()[0]*2.5)
+        if self.center[0]-lenCloud>screen.screensize()[0]:
             for poly in polys:
-                poly['poly'] = tuple((x[0]-1200,x[1]) for x in poly['poly'])
+                poly['poly'] = tuple((x[0]-shift,x[1]) for x in poly['poly'])
+            self.center[0] -= shift
         else:
             for poly in polys:
                 poly['poly'] = tuple((x[0]+self.amtToMove,x[1]) for x in poly['poly'])
+            self.center[0] += self.amtToMove
 
 
 class Bird(AnimatedObject):
     radius = 20
-    angle = 135
+    angle = 100
     size = 120
     inclineRange = 30 #degrees
     color = "grey"
@@ -478,7 +482,7 @@ class Bird(AnimatedObject):
 
         polys = self.polyColorDics
         if self.center[0]+Bird.size<-screen.screensize()[0]:
-            shift = int((screen.screensize()[0]*2.5)//1)
+            shift = int(screen.screensize()[0]*2.5)
             for poly in polys:
                 poly['poly'] = tuple((x[0]+shift,x[1]) for x in poly['poly'])
             self.center[0] += shift
@@ -580,7 +584,7 @@ def getSkyColor(time:'mins'):
 if __name__ == "__main__":
     screen.colormode(255)
     numMountains=3
-    numFlowers=10
+    numFlowers=7
     numClouds=3
     numBirds = 3
     sun = Sun()
@@ -600,6 +604,7 @@ if __name__ == "__main__":
     turt.shape(AnimatedObject.getShape())
     turt.showturtle()
     AnimatedObject.clearDrawingAll()
+    input()
     while(1):
         AnimatedObject.moveAll()
         turt.shape(AnimatedObject.getShape())
